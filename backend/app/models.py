@@ -1,0 +1,13 @@
+from datetime import datetime, timezone
+from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, Float, JSON, Boolean
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+from .db import Base
+def now(): return datetime.now(timezone.utc)
+class User(Base):
+    __tablename__='users'; id:Mapped[int]=mapped_column(primary_key=True); email:Mapped[str]=mapped_column(String(255),unique=True); display_name:Mapped[str]=mapped_column(String(100),default='Analyst'); password_hash:Mapped[str]=mapped_column(String(255)); created_at:Mapped[datetime]=mapped_column(DateTime(timezone=True),default=now)
+class MediaFile(Base):
+    __tablename__='media_files'; id:Mapped[int]=mapped_column(primary_key=True); owner_id:Mapped[int]=mapped_column(ForeignKey('users.id'),index=True); original_name:Mapped[str]=mapped_column(String(255)); stored_name:Mapped[str]=mapped_column(String(255),unique=True); media_type:Mapped[str]=mapped_column(String(20)); content_type:Mapped[str]=mapped_column(String(120)); size_bytes:Mapped[int]=mapped_column(Integer); width:Mapped[int|None]=mapped_column(Integer); height:Mapped[int|None]=mapped_column(Integer); duration_seconds:Mapped[float|None]=mapped_column(Float); created_at:Mapped[datetime]=mapped_column(DateTime(timezone=True),default=now); owner=relationship('User')
+class Analysis(Base):
+    __tablename__='analyses'; id:Mapped[int]=mapped_column(primary_key=True); file_id:Mapped[int]=mapped_column(ForeignKey('media_files.id',ondelete='CASCADE'),index=True); owner_id:Mapped[int]=mapped_column(ForeignKey('users.id'),index=True); status:Mapped[str]=mapped_column(String(20),default='QUEUED',index=True); model_version:Mapped[str]=mapped_column(String(80)); model_score:Mapped[float|None]=mapped_column(Float); confidence:Mapped[float|None]=mapped_column(Float); category:Mapped[str|None]=mapped_column(String(40)); summary:Mapped[str|None]=mapped_column(Text); result_json:Mapped[dict]=mapped_column(JSON,default=dict); error:Mapped[str|None]=mapped_column(Text); processing_ms:Mapped[int|None]=mapped_column(Integer); created_at:Mapped[datetime]=mapped_column(DateTime(timezone=True),default=now); updated_at:Mapped[datetime]=mapped_column(DateTime(timezone=True),default=now,onupdate=now); file=relationship('MediaFile')
+class FrameFinding(Base):
+    __tablename__='frame_findings'; id:Mapped[int]=mapped_column(primary_key=True); analysis_id:Mapped[int]=mapped_column(ForeignKey('analyses.id',ondelete='CASCADE'),index=True); frame_index:Mapped[int]=mapped_column(Integer); timestamp_seconds:Mapped[float]=mapped_column(Float); score:Mapped[float]=mapped_column(Float); findings:Mapped[dict]=mapped_column(JSON,default=dict)

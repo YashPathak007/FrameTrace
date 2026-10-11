@@ -1,0 +1,32 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: frametrace
+      POSTGRES_USER: frametrace
+      POSTGRES_PASSWORD: frametrace
+    volumes: [frametrace_db:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL","pg_isready -U frametrace -d frametrace"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+  backend:
+    build: ./backend
+    environment:
+      DATABASE_URL: postgresql+psycopg://frametrace:frametrace@db:5432/frametrace
+      SECRET_KEY: ${SECRET_KEY}
+      STORAGE_DIR: /var/lib/frametrace/uploads
+      CORS_ORIGIN: http://localhost:5175
+    ports: ["4100:4100"]
+    volumes: [frametrace_uploads:/var/lib/frametrace/uploads]
+    depends_on:
+      db: {condition: service_healthy}
+  frontend:
+    build: ./frontend
+    environment: {VITE_API_URL: http://localhost:4100/api}
+    ports: ["5175:5173"]
+    depends_on: [backend]
+volumes:
+  frametrace_db:
+  frametrace_uploads:
